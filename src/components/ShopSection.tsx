@@ -1,6 +1,34 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
+import { products } from "@/lib/products";
 
 export default function ShopSection() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const product = products["shadow-strike"];
+
+  const handleBuy = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "خطا در شروع پرداخت.");
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "خطا در شروع پرداخت.");
+      setLoading(false);
+    }
+  };
+
   return (
     <section
       id="products"
@@ -29,13 +57,20 @@ export default function ShopSection() {
             طراحی خاص، راحتی بی‌نظیر. این مدل رو برای کسایی ساختیم که سبک خودشون رو دنبال می‌کنن.
           </p>
 
-          <div className="mt-8 flex items-center gap-4">
-            <div className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 backdrop-blur-md">
-              <span className="text-lg font-bold text-white">۲,۹۵۰,۰۰۰ تومان</span>
+          <div className="mt-8 flex flex-col items-center gap-3 lg:items-start">
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 backdrop-blur-md">
+                <span className="text-lg font-bold text-white">{product.priceTomanDisplay}</span>
+              </div>
+              <button
+                onClick={handleBuy}
+                disabled={loading}
+                className="rounded-2xl bg-red-600 px-6 py-3 text-sm font-semibold text-white transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? "در حال انتقال..." : "خرید آنلاین"}
+              </button>
             </div>
-            <button className="rounded-2xl bg-red-600 px-6 py-3 text-sm font-semibold text-white transition-transform hover:scale-105">
-              افزودن به سبد خرید
-            </button>
+            {error && <p className="text-sm text-red-400">{error}</p>}
           </div>
         </div>
 
