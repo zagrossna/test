@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Image from "next/image";
 import { products } from "@/lib/products";
+import CheckoutModal from "./CheckoutModal";
 
 export default function ShopSection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const product = products["shadow-strike"];
 
   const handleBuy = async () => {
@@ -19,12 +21,13 @@ export default function ShopSection() {
         body: JSON.stringify({ productId: product.id }),
       });
       const data = await res.json();
-      if (!res.ok || !data.url) {
+      if (!res.ok || !data.clientSecret) {
         throw new Error(data.error || "خطا در شروع پرداخت.");
       }
-      window.location.href = data.url;
+      setClientSecret(data.clientSecret);
     } catch (err) {
       setError(err instanceof Error ? err.message : "خطا در شروع پرداخت.");
+    } finally {
       setLoading(false);
     }
   };
@@ -67,7 +70,7 @@ export default function ShopSection() {
                 disabled={loading}
                 className="rounded-2xl bg-red-600 px-6 py-3 text-sm font-semibold text-white transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "در حال انتقال..." : "خرید آنلاین"}
+                {loading ? "در حال آماده‌سازی..." : "خرید آنلاین"}
               </button>
             </div>
             {error && <p className="text-sm text-red-400">{error}</p>}
@@ -87,6 +90,13 @@ export default function ShopSection() {
           </div>
         </div>
       </div>
+
+      {clientSecret && (
+        <CheckoutModal
+          clientSecret={clientSecret}
+          onClose={() => setClientSecret(null)}
+        />
+      )}
     </section>
   );
 }
