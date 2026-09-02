@@ -54,6 +54,27 @@ function getInstagramConfig() {
   return { igUserId, accessToken };
 }
 
+async function waitForContainerReady(
+  containerId: string,
+  accessToken: string
+) {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/${containerId}?fields=status_code&access_token=${accessToken}`
+    );
+    const data = await res.json();
+
+    if (data.status_code === "FINISHED") return;
+    if (data.status_code === "ERROR") {
+      throw new Error("پردازش عکس اینستاگرام با خطا مواجه شد.");
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+
+  throw new Error("پردازش عکس اینستاگرام بیش از حد طول کشید.");
+}
+
 export async function postProductToInstagram(product: FacebookProduct) {
   if (!/^https?:\/\//.test(product.image)) {
     throw new Error("عکس محصول باید یک لینک عمومی معتبر باشد تا در اینستاگرام پست شود.");
@@ -77,6 +98,8 @@ export async function postProductToInstagram(product: FacebookProduct) {
   if (!createRes.ok) {
     throw new Error(createData?.error?.message || "خطا در ساخت پست اینستاگرام.");
   }
+
+  await waitForContainerReady(createData.id, accessToken);
 
   const publishRes = await fetch(
     `https://graph.facebook.com/v21.0/${igUserId}/media_publish`,
