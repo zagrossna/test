@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { postProductToFacebook } from "@/lib/facebook";
+import { postProductToFacebook, postProductToInstagram } from "@/lib/facebook";
 import { mapProductRow, type ProductRow } from "@/lib/products";
 
 export async function POST(request: NextRequest) {
@@ -20,15 +20,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "درخواست نامعتبر است." }, { status: 400 });
   }
 
-  try {
-    const product = mapProductRow(record);
-    await postProductToFacebook(product);
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("Facebook post error:", err);
+  const product = mapProductRow(record);
+
+  const [facebookResult, instagramResult] = await Promise.allSettled([
+    postProductToFacebook(product),
+    postProductToInstagram(product),
+  ]);
+
+  if (facebookResult.status === "rejected") {
+    console.error("Facebook post error:", facebookResult.reason);
+  }
+  if (instagramResult.status === "rejected") {
+    console.error("Instagram post error:", instagramResult.reason);
+  }
+
+  if (facebookResult.status === "rejected" && instagramResult.status === "rejected") {
     return NextResponse.json(
-      { error: "خطا در ارسال پست به فیسبوک." },
+      { error: "خطا در ارسال پست به فیسبوک و اینستاگرام." },
       { status: 502 }
     );
   }
+
+  return NextResponse.json({
+    ok: true,
+    facebook: facebookResult.status === "fulfilled",
+    instagram: instagramResult.status === "fulfilled",
+  });
 }
