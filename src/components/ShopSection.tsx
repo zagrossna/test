@@ -1,36 +1,15 @@
-"use client";
+import { supabase } from "@/lib/supabase";
+import { mapProductRow, type ProductRow } from "@/lib/products";
+import ProductCard from "./ProductCard";
 
-import { useState } from "react";
-import Image from "next/image";
-import { products } from "@/lib/products";
-import CheckoutModal from "./CheckoutModal";
+export default async function ShopSection() {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .order("created_at", { ascending: true });
 
-export default function ShopSection() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const product = products["shadow-strike"];
-
-  const handleBuy = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product.id }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.clientSecret) {
-        throw new Error(data.error || "خطا در شروع پرداخت.");
-      }
-      setClientSecret(data.clientSecret);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "خطا در شروع پرداخت.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const products =
+    error || !data ? [] : data.map((row) => mapProductRow(row as ProductRow));
 
   return (
     <section
@@ -40,63 +19,31 @@ export default function ShopSection() {
       {/* ambient glow */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-600/20 blur-[120px]" />
 
-      <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
-        {/* Text side */}
-        <div className="flex flex-1 flex-col items-center text-center lg:items-start lg:text-right">
+      <div className="relative mx-auto max-w-6xl">
+        <div className="mb-12 flex flex-col items-center text-center">
           <span className="rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs font-medium text-white/70 backdrop-blur-md">
             پیشنهاد ویژه
           </span>
-
           <h2
-            className="mt-5 text-5xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-7xl"
+            className="mt-5 text-4xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-6xl"
             style={{ fontFamily: "var(--font-oswald)" }}
           >
-            Shadow
-            <br />
-            Strike
+            محصولات ما
           </h2>
+        </div>
 
-          <p className="mt-5 max-w-sm text-sm leading-7 text-white/60 sm:text-base">
-            طراحی خاص، راحتی بی‌نظیر. این مدل رو برای کسایی ساختیم که سبک خودشون رو دنبال می‌کنن.
+        {products.length === 0 ? (
+          <p className="text-center text-white/60">
+            در حال حاضر محصولی موجود نیست.
           </p>
-
-          <div className="mt-8 flex flex-col items-center gap-3 lg:items-start">
-            <div className="flex items-center gap-4">
-              <div className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 backdrop-blur-md">
-                <span className="text-lg font-bold text-white">{product.priceTomanDisplay}</span>
-              </div>
-              <button
-                onClick={handleBuy}
-                disabled={loading}
-                className="rounded-2xl bg-red-600 px-6 py-3 text-sm font-semibold text-white transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "در حال آماده‌سازی..." : "خرید آنلاین"}
-              </button>
-            </div>
-            {error && <p className="text-sm text-red-400">{error}</p>}
+        ) : (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
-        </div>
-
-        {/* Image side */}
-        <div className="relative flex flex-1 items-center justify-center">
-          <div className="relative aspect-[430/400] w-full max-w-md">
-            <Image
-              src="/images/featured-shoe.png"
-              alt="Shadow Strike sneaker"
-              fill
-              className="object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)]"
-              priority
-            />
-          </div>
-        </div>
+        )}
       </div>
-
-      {clientSecret && (
-        <CheckoutModal
-          clientSecret={clientSecret}
-          onClose={() => setClientSecret(null)}
-        />
-      )}
     </section>
   );
 }

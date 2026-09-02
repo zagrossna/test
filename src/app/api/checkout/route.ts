@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
-import { products } from "@/lib/products";
+import { supabase } from "@/lib/supabase";
+import { mapProductRow, type ProductRow } from "@/lib/products";
 
 export async function POST(request: NextRequest) {
   let productId: string;
@@ -11,10 +12,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "درخواست نامعتبر است." }, { status: 400 });
   }
 
-  const product = products[productId];
-  if (!product) {
+  const { data, error: dbError } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", productId)
+    .single();
+
+  if (dbError || !data) {
     return NextResponse.json({ error: "محصول یافت نشد." }, { status: 404 });
   }
+
+  const product = mapProductRow(data as ProductRow);
 
   try {
     const stripe = getStripe();

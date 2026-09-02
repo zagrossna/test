@@ -7,13 +7,22 @@ export type Product = {
   priceUsdCents: number;
 };
 
-export const products: Record<string, Product> = {
-  "shadow-strike": {
-    id: "shadow-strike",
-    name: "Shadow Strike",
-    description: "کفش ورزشی مدل Shadow Strike",
-    image: "/images/featured-shoe.png",
-    priceTomanDisplay: "۲,۹۵۰,۰۰۰ تومان",
-    priceUsdCents: 7900,
-  },
+export type ProductRow = {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  price_toman_display: string;
+  price_usd_cents: number;
 };
+
+export function mapProductRow(row: ProductRow): Product {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    image: row.image,
+    priceTomanDisplay: row.price_toman_display,
+    priceUsdCents: row.price_usd_cents,
+  };
+}
